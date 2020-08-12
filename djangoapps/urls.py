@@ -20,5 +20,6 @@ from BatchCompute import views as bc_views
 
 urlpatterns = [
     re_path(r'^admin/', admin.site.urls),
-    re_path(r'^azure-compute/', bc_views.azure_compute),
+    re_path(r'^blob/', bc_views.azureBlob),
+    re_path(r'^compute/', bc_views.azureCompute),
 ]

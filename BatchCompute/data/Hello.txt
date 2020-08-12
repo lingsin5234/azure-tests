@@ -1,1 +1,1 @@
-Testing... Azure Compute!
+Hello World!
