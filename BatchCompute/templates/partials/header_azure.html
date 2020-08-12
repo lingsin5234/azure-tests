@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Redis & Log Demos</title>
+
+    <!-- Latest Bootstrap CSS-->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+
+    <!-- jQuery -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+    <!-- Roboto Font -->
+    <link rel="stylesheet" href='https://fonts.googleapis.com/css?family=Roboto'>
+
+    <!-- Baloo 2 Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500&display=swap" rel="stylesheet">
+
+    <!-- D3.js -->
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'style.css' %}">
+</head>
+
+<body>
+    {% load menu %}
+    {% block content %}
+    {% generate_menu %}
+    {% with menu=menus.redis %}
+    <nav class="navbar navbar-dark"><div class="container-fluid d-flex flex-grow-1">
+        <div class="navbar-header">
+            <!--a class="navbar-brand" href="#">Baseball Project</a-->
+        </div>
+        <div class="text-right">
+            <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#myNavbar"
+            aria-controls="navbarSupportedContent1" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+        </div>
+        <div class="collapse navbar-collapse text-right" id="myNavbar">
+            <ul class="nav navbar-nav">
+                {% for item in menu %}
+                <li><a href="{{ item.url }}">{{ item.title }}</a></li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div></nav>
+    {% endwith %}
+    {% endblock %}
