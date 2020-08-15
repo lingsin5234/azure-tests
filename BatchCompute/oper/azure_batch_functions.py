@@ -125,8 +125,7 @@ def createTasks(batch_client, job_id, input_files):
             id='Task{}'.format(idx),
             command_line=command,
             resource_files=[input_file]
-        )
-        )
+        ))
     batch_client.task.add_collection(job_id, tasks)
 
 
