@@ -77,19 +77,18 @@ def getContainerClient(input_container_name):
 
 def uploadInputFiles(container_client, container_name, file_path, filenames, blob_name, loaded):
 
-    input_file_paths = [os.path.join(file_path, filenames[0])]
+    input_file_paths = [os.path.join(file_path, filename) for filename in filenames]
 
-    input_files = [uploadFile2Blob(container_client, container_name, input_file, filenames[0], loaded)
+    input_files = [uploadFile2Blob(container_client, container_name, input_file, loaded)
                    for input_file in input_file_paths]
 
     return input_files
 
 
-def uploadFile2Blob(container_client, container_name, upload_file_path, filename, loaded):
+def uploadFile2Blob(container_client, container_name, upload_file_path, loaded):
 
-    # Create a blob client using the local file name as the name for the blob
-    # filename = os.path.basename(upload_file_path)
-    # blob_client = block_blob_client.BlobClient(container=container_name, blob=blob_name)
+    # local file name
+    filename = os.path.basename(upload_file_path)
 
     print("\nUploading to Azure Storage as blob:\n\t" + filename)
     if not loaded:
@@ -148,28 +147,57 @@ def createTasks(batch_client, job_id, input_files, filenames):
 
     tasks = list()
 
-    input_file = input_files[0]
+    # Environment Variables
+    acc_name = batchmodels.EnvironmentSetting(name='AZURE_BLOB_ACCOUNT_NAME',
+                                              value=os.environ.get('AZURE_BLOB_ACCOUNT_NAME'))
+    acc_key = batchmodels.EnvironmentSetting(name='AZURE_BLOB_ACCOUNT_KEY',
+                                             value=os.environ.get('AZURE_BLOB_ACCOUNT_KEY'))
+
+    # input_file = input_files[0]
     filename = filenames[0]
     # for idx, input_file in enumerate(input_files):
     task_commands = [
-        # "/bin/bash -c \"pwd\"",
-        "/bin/bash -c \"cat {}\"".format(filename),
-        # Install pip
-        # "/bin/bash -c \"curl -fSsL https://bootstrap.pypa.io/get-pip.py | python\"",
-        "/bin/bash -c \"python3 -m venv env && source env/bin/activate && python3 -m pip install -r {}\"".format(filename)]
+        # install latest requirements
+        "/bin/bash -c \"python3 -m venv env && source env/bin/activate && " +
+        "python3 -m pip install -r {} && deactivate\"".format(filenames[0]),
 
-    for idx, command in enumerate(task_commands):
-        if re.search(filename, command):
-            tasks.append(batch.models.TaskAddParameter(
-                id='Task{}'.format(idx),
-                command_line=command,
-                resource_files=[input_file]
-            ))
-        else:
-            tasks.append(batch.models.TaskAddParameter(
-                id='Task{}'.format(idx),
-                command_line=command
-            ))
+        # run the python script
+        "/bin/bash -c \"python3 -m venv env && source env/bin/activate && " +
+        "python3 -m calculate_hexgrid_standalone && deactivate\""
+    ]
+
+    '''
+    # Status 0 -- printenv
+    tasks.append(batch.models.TaskAddParameter(
+        id='Status{}'.format(0),
+        command_line="/bin/bash -c \"printenv\"",
+        environment_settings=[acc_name, acc_key]
+    ))
+    '''
+
+    # Task 0 -- install latest requirements
+    tasks.append(batch.models.TaskAddParameter(
+        id='Task{}'.format(0),
+        command_line=task_commands[0],
+        resource_files=[input_files[0]]
+    ))
+
+    # Status 1 -- pip list
+    tasks.append(batch.models.TaskAddParameter(
+        id='Status{}'.format(1),
+        command_line="/bin/bash -c \"python3 -m venv env && source env/bin/activate && python3 -m pip list\"",
+        environment_settings=[acc_name, acc_key]
+    ))
+
+    # Task 1 -- run the python script
+    tasks.append(batch.models.TaskAddParameter(
+        id='Task{}'.format(1),
+        command_line=task_commands[1],
+        resource_files=[input_files[1], input_files[2], input_files[3]],
+        environment_settings=[acc_name, acc_key]
+    ))
+
+    # add tasks to task collection
     batch_client.task.add_collection(job_id, tasks)
 
 

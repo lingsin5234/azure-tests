@@ -37,14 +37,17 @@ def azureCompute(request):
     # Use Blob Service Client to get the Container and the Blob Client
     # container = abf.createContainerClient(blob_service_client, input_container_name)
     container = abf.getContainerClient(input_container_name)
-    print("Container Created.")
+    print("Container Retrieved.")
     # blob_client = blob_service_client.get_blob_client(container=input_container_name, blob=blob_name)
 
     # Upload Input Files
     # filenames = ['Test0.txt', 'Test1.txt', 'Test2.txt']
-    filenames = ['requirements.txt']
-    input_files = abf.uploadInputFiles(container, input_container_name, 'BatchCompute/data', filenames, blob_name, True)
-    # print("INPUT FILES:", input_files)
+    filenames = ['requirements.txt',
+                 'hexgrid_constructor.py',
+                 'calculate_hexgrid_standalone.py',
+                 'stations_2020-01-01.json']
+    input_files = abf.uploadInputFiles(container, input_container_name, 'BatchCompute/data', filenames, blob_name, False)
+    print("INPUT FILES:", input_files)
 
     # Create a Batch service client. We'll now be interacting with the Batch service in addition to Storage
     batch_client = abf.createBatchClient()
