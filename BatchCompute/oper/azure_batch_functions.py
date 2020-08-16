@@ -166,11 +166,16 @@ def createTasks(batch_client, job_id, input_files, filenames):
         "python3 -m calculate_hexgrid_standalone && deactivate\""
     ]
 
+    status_commands = [
+        "/bin/bash -c \"printenv\"",
+        "/bin/bash -c \"python3 -m venv env && source env/bin/activate && python3 -m pip list && deactivate\""
+    ]
+
     '''
     # Status 0 -- printenv
     tasks.append(batch.models.TaskAddParameter(
         id='Status{}'.format(0),
-        command_line="/bin/bash -c \"printenv\"",
+        command_line=status_commands[0],
         environment_settings=[acc_name, acc_key]
     ))
     '''
@@ -185,7 +190,7 @@ def createTasks(batch_client, job_id, input_files, filenames):
     # Status 1 -- pip list
     tasks.append(batch.models.TaskAddParameter(
         id='Status{}'.format(1),
-        command_line="/bin/bash -c \"python3 -m venv env && source env/bin/activate && python3 -m pip list\"",
+        command_line=status_commands[1],
         environment_settings=[acc_name, acc_key]
     ))
 
