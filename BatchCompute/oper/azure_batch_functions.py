@@ -10,6 +10,7 @@ import azure.storage.blob as azureblob
 import azure.batch.batch_auth as batch_auth
 import azure.batch as batch
 import azure.batch.models as batchmodels
+from azure.storage.blob import BlobSasPermissions
 import BatchCompute.oper.azure_blob_handler as abh
 import os, sys, time, io, re
 import datetime as dte
@@ -27,7 +28,7 @@ def createBlobClient():
 '''
 
 
-def createBlobClient():
+def createBlobServiceClient():
 
     connect_str = os.environ.get('AZURE_STORAGE_CONNECTION_STRING')
     connect_str = connect_str.replace("'", '').replace('$', '')  # remove auto-created $ and '
@@ -38,45 +39,73 @@ def createBlobClient():
     return blob_service_client
 
 
-def uploadInputFiles(blob_client, container_name, file_path, filenames):
+def createContainerClient(blob_service_client, input_container_name):
 
-    input_file_paths = [os.path.join(file_path, filenames[0]),
-                        os.path.join(file_path, filenames[1]),
-                        os.path.join(file_path, filenames[2])]
+    sas_token = azureblob.generate_container_sas(
+        os.environ.get('AZURE_BLOB_ACCOUNT_NAME'),
+        input_container_name,
+        account_key=os.environ.get('AZURE_BLOB_ACCOUNT_KEY'),
+        policy_id='my-access-policy-id'
+    )
 
-    input_files = [uploadFile2Blob(blob_client, container_name, input_file)
+    container = azureblob.ContainerClient.from_container_url(
+        container_url="https://" + os.environ.get('AZURE_BLOB_ACCOUNT_NAME') + ".blob.core.windows.net/" +
+                      input_container_name,
+        credential=sas_token
+    )
+
+    return container
+
+
+def getContainerClient(input_container_name):
+
+    sas_token = azureblob.generate_container_sas(
+        os.environ.get('AZURE_BLOB_ACCOUNT_NAME'),
+        input_container_name,
+        account_key=os.environ.get('AZURE_BLOB_ACCOUNT_KEY'),
+        policy_id='container_policy'
+    )
+
+    container = azureblob.ContainerClient.from_container_url(
+        container_url="https://" + os.environ.get('AZURE_BLOB_ACCOUNT_NAME') + ".blob.core.windows.net/" +
+                      input_container_name,
+        credential=sas_token
+    )
+
+    return container
+
+
+def uploadInputFiles(container_client, container_name, file_path, filenames, blob_name):
+
+    input_file_paths = [os.path.join(file_path, filenames[0])]
+
+    input_files = [uploadFile2Blob(container_client, container_name, input_file, filenames[0])
                    for input_file in input_file_paths]
 
     return input_files
 
 
-def uploadFile2Blob(block_blob_client, container_name, upload_file_path):
+def uploadFile2Blob(container_client, container_name, upload_file_path, filename):
 
     # Create a blob client using the local file name as the name for the blob
-    filename = os.path.basename(upload_file_path)
-    blob_client = block_blob_client.get_blob_client(container=container_name, blob=filename)
+    # filename = os.path.basename(upload_file_path)
+    # blob_client = block_blob_client.BlobClient(container=container_name, blob=blob_name)
 
     print("\nUploading to Azure Storage as blob:\n\t" + filename)
 
     # Upload the created file
     with open(upload_file_path, "rb") as data:
-        blob_client.upload_blob(data)
+        container_client.upload_blob(filename, data=data)
 
     # blob_url = blob_client.getBlobUrl()
     account_name = os.environ.get('AZURE_BLOB_ACCOUNT_NAME')
-    blob_url = f"https://{account_name}.blob.core.windows.net/{container_name}/{filename}"
-    '''
-    sas_token = blob_client.generate_blob_shared_access_signature(
-        container_name,
-        blob_name,
-        permission=azureblob.BlobPermissions.READ,
-        expiry=dte.datetime.utcnow() + dte.timedelta(hours=2))
+    # blob_url = f"https://{account_name}.blob.core.windows.net/{container_name}/{blob_name}"
+    container_url = blob_url = f"https://{account_name}.blob.core.windows.net/{container_name}"
+    # print(blob_url, filename)
+    print(container_url, filename)
 
-    # sas_url = blob_client.make_blob_url(container_name, blob_name, sas_token=sas_token)
-    sas_url = blob_client.from_blob_url(sas_url)
-    '''
-
-    return batchmodels.ResourceFile(http_url=blob_url, file_path=filename)
+    # return batchmodels.ResourceFile(http_url=blob_url, file_path=filename)
+    return batchmodels.ResourceFile(storage_container_url=container_url, file_path=os.path.join('.', filename))
 
 
 def createBatchClient():
@@ -102,7 +131,7 @@ def createBatchPool(batch_client, pool_id):
             ),
             node_agent_sku_id="batch.node.ubuntu 18.04"),
         vm_size='STANDARD_A2_v2',   # VM Type/Size
-        target_dedicated_nodes=2    # pool node count
+        target_dedicated_nodes=1    # pool node count
     )
     batch_client.pool.add(new_pool)
 
@@ -119,13 +148,27 @@ def createTasks(batch_client, job_id, input_files):
 
     tasks = list()
 
-    for idx, input_file in enumerate(input_files):
-        command = "/bin/bash -c \"cat {}\"".format(input_file.file_path)
-        tasks.append(batch.models.TaskAddParameter(
-            id='Task{}'.format(idx),
-            command_line=command,
-            resource_files=[input_file]
-        ))
+    input_file = input_files[0]
+    # for idx, input_file in enumerate(input_files):
+    task_commands = [
+        # "/bin/bash -c \"pwd\"",
+        "/bin/bash -c \"cat {}\"".format(input_file.file_path)]
+        # Install pip
+        # "/bin/bash -c \"curl -fSsL https://bootstrap.pypa.io/get-pip.py | python\"",
+        # "/bin/bash -c \"pip install -r {}\"".format(input_file.file_path)]
+
+    for idx, command in enumerate(task_commands):
+        if re.search(str(input_file.file_path), command):
+            tasks.append(batch.models.TaskAddParameter(
+                id='Task{}'.format(idx),
+                command_line=command,
+                resource_files=[input_file]
+            ))
+        else:
+            tasks.append(batch.models.TaskAddParameter(
+                id='Task{}'.format(idx),
+                command_line=command
+            ))
     batch_client.task.add_collection(job_id, tasks)
 
 

@@ -29,18 +29,22 @@ def azureCompute(request):
 
     # Create the blob client, for use in obtaining references to
     # blob storage containers and uploading files to containers.
+    blob_name = 'python-test' + str(uuid.uuid4())
+    # input_container_name = 'compute-test' + str(uuid.uuid4())
+    input_container_name = 'compute-testcfc006ac-a052-4cba-a57e-25bbb8d7a4ab'
+    blob_service_client = abf.createBlobServiceClient()
 
-    blob_client = abf.createBlobClient()
-
-    # Use the blob client to create the containers in Azure Storage if they don't yet exist.
-
-    input_container_name = 'compute-test' + str(uuid.uuid4())
-    blob_client.create_container(input_container_name)  # , fail_on_exist=False)
+    # Use Blob Service Client to get the Container and the Blob Client
+    # container = abf.createContainerClient(blob_service_client, input_container_name)
+    container = abf.getContainerClient(input_container_name)
+    print("Container Created.")
+    # blob_client = blob_service_client.get_blob_client(container=input_container_name, blob=blob_name)
 
     # Upload Input Files
-    filenames = ['Test0.txt', 'Test1.txt', 'Test2.txt']
-    input_files = abf.uploadInputFiles(blob_client, input_container_name, 'BatchCompute/data', filenames)
-    print("INPUT FILES:", input_files)
+    # filenames = ['Test0.txt', 'Test1.txt', 'Test2.txt']
+    filenames = ['requirements.txt']
+    # input_files = abf.uploadInputFiles(container, input_container_name, 'BatchCompute/data', filenames, blob_name)
+    # print("INPUT FILES:", input_files)
 
     # Create a Batch service client. We'll now be interacting with the Batch service in addition to Storage
     batch_client = abf.createBatchClient()
@@ -48,13 +52,13 @@ def azureCompute(request):
     try:
         # Create the pool that will contain the compute nodes that will execute the
         # tasks.
-        abf.createBatchPool(batch_client, os.environ.get('POOL_ID'))
+        # abf.createBatchPool(batch_client, os.environ.get('POOL_ID'))
 
         # Create the job that will run the tasks.
-        abf.createBatchJob(batch_client, os.environ.get('JOB_ID'), os.environ.get('POOL_ID'))
+        # abf.createBatchJob(batch_client, os.environ.get('JOB_ID'), os.environ.get('POOL_ID'))
 
         # Add the tasks to the job.
-        abf.createTasks(batch_client, os.environ.get('JOB_ID'), input_files)
+        # abf.createTasks(batch_client, os.environ.get('JOB_ID'), input_files)
 
         # Pause execution until tasks reach Completed state.
         abf.waitTaskCompletion(batch_client, os.environ.get('JOB_ID'), dte.timedelta(minutes=30))
@@ -69,9 +73,9 @@ def azureCompute(request):
         abf.printBatchException(err)
         # raise -- continue and delete container + job + pool
 
-    # Clean up storage resources
-    print('Deleting container [{}]...'.format(input_container_name))
-    blob_client.delete_container(input_container_name)
+    # Clean up storage resources -- DO NOT DELETE THE CONTAINER
+    # print('Deleting container [{}]...'.format(input_container_name))
+    # blob_service_client.delete_container(input_container_name)
 
     # Print out some timing info
     end_time = dte.datetime.now().replace(microsecond=0)
