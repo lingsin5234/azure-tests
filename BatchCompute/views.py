@@ -46,7 +46,7 @@ def azureCompute(request):
                  'hexgrid_constructor.py',
                  'calculate_hexgrid_standalone.py',
                  'stations_2020-01-01.json']
-    input_files = abf.uploadInputFiles(container, input_container_name, 'BatchCompute/data', filenames, blob_name, True)
+    input_files = abf.uploadInputFiles(container, input_container_name, 'BatchCompute/data', filenames, blob_name, False)
     print("INPUT FILES:", input_files)
 
     # Create a Batch service client. We'll now be interacting with the Batch service in addition to Storage
@@ -64,7 +64,7 @@ def azureCompute(request):
         abf.createTasks(batch_client, os.environ.get('JOB_ID'), input_files, filenames)
 
         # Pause execution until tasks reach Completed state.
-        abf.waitTaskCompletion(batch_client, os.environ.get('JOB_ID'), dte.timedelta(minutes=30))
+        abf.waitTaskCompletion(batch_client, os.environ.get('JOB_ID'), dte.timedelta(minutes=60))
 
         print("  Success! All tasks reached the 'Completed' state within the "
               "specified timeout period.")
