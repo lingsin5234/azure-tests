@@ -43,8 +43,8 @@ def azureCompute(request):
     # Upload Input Files
     # filenames = ['Test0.txt', 'Test1.txt', 'Test2.txt']
     filenames = ['requirements.txt']
-    # input_files = abf.uploadInputFiles(container, input_container_name, 'BatchCompute/data', filenames, blob_name)
-    # print("INPUT FILES:", input_files)
+    input_files = abf.uploadInputFiles(container, input_container_name, 'BatchCompute/data', filenames, blob_name)
+    print("INPUT FILES:", input_files)
 
     # Create a Batch service client. We'll now be interacting with the Batch service in addition to Storage
     batch_client = abf.createBatchClient()
@@ -84,12 +84,14 @@ def azureCompute(request):
     print('Elapsed time: {}'.format(end_time - start_time))
     print()
 
+    '''
     # Clean up Batch resources (if the user so chooses).
     if abf.queryYorN('Delete job?') == 'yes':
         batch_client.job.delete(os.environ.get('JOB_ID'))
 
     if abf.queryYorN('Delete pool?') == 'yes':
         batch_client.pool.delete(os.environ.get('POOL_ID'))
+    '''
 
     print()
     input('Press ENTER to exit...')
