@@ -75,27 +75,27 @@ def getContainerClient(input_container_name):
     return container
 
 
-def uploadInputFiles(container_client, container_name, file_path, filenames, blob_name):
+def uploadInputFiles(container_client, container_name, file_path, filenames, blob_name, loaded):
 
     input_file_paths = [os.path.join(file_path, filenames[0])]
 
-    input_files = [uploadFile2Blob(container_client, container_name, input_file, filenames[0])
+    input_files = [uploadFile2Blob(container_client, container_name, input_file, filenames[0], loaded)
                    for input_file in input_file_paths]
 
     return input_files
 
 
-def uploadFile2Blob(container_client, container_name, upload_file_path, filename):
+def uploadFile2Blob(container_client, container_name, upload_file_path, filename, loaded):
 
     # Create a blob client using the local file name as the name for the blob
     # filename = os.path.basename(upload_file_path)
     # blob_client = block_blob_client.BlobClient(container=container_name, blob=blob_name)
 
     print("\nUploading to Azure Storage as blob:\n\t" + filename)
-
-    # Upload the created file
-    with open(upload_file_path, "rb") as data:
-        container_client.upload_blob(filename, data=data)
+    if not loaded:
+        # Upload the created file
+        with open(upload_file_path, "rb") as data:
+            container_client.upload_blob(filename, data=data)
 
     # blob_url = blob_client.getBlobUrl()
     account_name = os.environ.get('AZURE_BLOB_ACCOUNT_NAME')
@@ -105,7 +105,7 @@ def uploadFile2Blob(container_client, container_name, upload_file_path, filename
     print(container_url, filename)
 
     # return batchmodels.ResourceFile(http_url=blob_url, file_path=filename)
-    return batchmodels.ResourceFile(storage_container_url=container_url, file_path=os.path.join('.', filename))
+    return batchmodels.ResourceFile(storage_container_url=container_url)
 
 
 def createBatchClient():
@@ -144,21 +144,22 @@ def createBatchJob(batch_client, job_id, pool_id):
     batch_client.job.add(job)
 
 
-def createTasks(batch_client, job_id, input_files):
+def createTasks(batch_client, job_id, input_files, filenames):
 
     tasks = list()
 
     input_file = input_files[0]
+    filename = filenames[0]
     # for idx, input_file in enumerate(input_files):
     task_commands = [
         # "/bin/bash -c \"pwd\"",
-        "/bin/bash -c \"cat {}\"".format(input_file.file_path)]
+        "/bin/bash -c \"cat {}\"".format(filename),
         # Install pip
         # "/bin/bash -c \"curl -fSsL https://bootstrap.pypa.io/get-pip.py | python\"",
-        # "/bin/bash -c \"pip install -r {}\"".format(input_file.file_path)]
+        "/bin/bash -c \"python3 -m venv env && source env/bin/activate && python3 -m pip install -r {}\"".format(filename)]
 
     for idx, command in enumerate(task_commands):
-        if re.search(str(input_file.file_path), command):
+        if re.search(filename, command):
             tasks.append(batch.models.TaskAddParameter(
                 id='Task{}'.format(idx),
                 command_line=command,

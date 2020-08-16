@@ -43,8 +43,8 @@ def azureCompute(request):
     # Upload Input Files
     # filenames = ['Test0.txt', 'Test1.txt', 'Test2.txt']
     filenames = ['requirements.txt']
-    input_files = abf.uploadInputFiles(container, input_container_name, 'BatchCompute/data', filenames, blob_name)
-    print("INPUT FILES:", input_files)
+    input_files = abf.uploadInputFiles(container, input_container_name, 'BatchCompute/data', filenames, blob_name, True)
+    # print("INPUT FILES:", input_files)
 
     # Create a Batch service client. We'll now be interacting with the Batch service in addition to Storage
     batch_client = abf.createBatchClient()
@@ -58,7 +58,7 @@ def azureCompute(request):
         # abf.createBatchJob(batch_client, os.environ.get('JOB_ID'), os.environ.get('POOL_ID'))
 
         # Add the tasks to the job.
-        # abf.createTasks(batch_client, os.environ.get('JOB_ID'), input_files)
+        abf.createTasks(batch_client, os.environ.get('JOB_ID'), input_files, filenames)
 
         # Pause execution until tasks reach Completed state.
         abf.waitTaskCompletion(batch_client, os.environ.get('JOB_ID'), dte.timedelta(minutes=30))
