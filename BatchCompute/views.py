@@ -46,7 +46,7 @@ def azureCompute(request):
                  'hexgrid_constructor.py',
                  'calculate_hexgrid_standalone.py',
                  'stations_2020-01-01.json']
-    input_files = abf.uploadInputFiles(container, input_container_name, 'BatchCompute/data', filenames, blob_name, False)
+    input_files = abf.uploadInputFiles(container, input_container_name, 'BatchCompute/data', filenames, blob_name, True)
     print("INPUT FILES:", input_files)
 
     # Create a Batch service client. We'll now be interacting with the Batch service in addition to Storage

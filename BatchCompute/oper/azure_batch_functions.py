@@ -139,7 +139,8 @@ def createBatchJob(batch_client, job_id, pool_id):
 
     job = batch.models.JobAddParameter(
         id=job_id,
-        pool_info=batch.models.PoolInformation(pool_id=pool_id))
+        pool_info=batch.models.PoolInformation(pool_id=pool_id),
+        uses_task_dependencies=True)
     batch_client.job.add(job)
 
 
@@ -154,51 +155,25 @@ def createTasks(batch_client, job_id, input_files, filenames):
                                              value=os.environ.get('AZURE_BLOB_ACCOUNT_KEY'))
 
     # input_file = input_files[0]
-    filename = filenames[0]
+    first_file = filenames[0]
     # for idx, input_file in enumerate(input_files):
     task_commands = [
         # install latest requirements
         "/bin/bash -c \"python3 -m venv env && source env/bin/activate && " +
-        "python3 -m pip install -r {} && deactivate\"".format(filenames[0]),
+        "python3 -m pip install -r {} && ".format(first_file) +
+
+        # print pip list
+        "python3 -m pip list && " +
 
         # run the python script
-        "/bin/bash -c \"python3 -m venv env && source env/bin/activate && " +
         "python3 -m calculate_hexgrid_standalone && deactivate\""
     ]
 
-    status_commands = [
-        "/bin/bash -c \"printenv\"",
-        "/bin/bash -c \"python3 -m venv env && source env/bin/activate && python3 -m pip list && deactivate\""
-    ]
-
-    '''
-    # Status 0 -- printenv
-    tasks.append(batch.models.TaskAddParameter(
-        id='Status{}'.format(0),
-        command_line=status_commands[0],
-        environment_settings=[acc_name, acc_key]
-    ))
-    '''
-
-    # Task 0 -- install latest requirements
+    # Task 0 -- do everything
     tasks.append(batch.models.TaskAddParameter(
         id='Task{}'.format(0),
         command_line=task_commands[0],
-        resource_files=[input_files[0]]
-    ))
-
-    # Status 1 -- pip list
-    tasks.append(batch.models.TaskAddParameter(
-        id='Status{}'.format(1),
-        command_line=status_commands[1],
-        environment_settings=[acc_name, acc_key]
-    ))
-
-    # Task 1 -- run the python script
-    tasks.append(batch.models.TaskAddParameter(
-        id='Task{}'.format(1),
-        command_line=task_commands[1],
-        resource_files=[input_files[1], input_files[2], input_files[3]],
+        resource_files=input_files,
         environment_settings=[acc_name, acc_key]
     ))
 

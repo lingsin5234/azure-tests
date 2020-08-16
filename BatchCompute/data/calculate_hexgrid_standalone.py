@@ -40,7 +40,7 @@ def writeToBlob(input_container_name, filename, data):
 
 
 def runHexGrid():
-    list_files = os.listdir("")
+    list_files = os.listdir()
     json_files = [f for f in list_files if re.search(r'^stations.*.json$', f)]
     if len(json_files) > 0:
         json_file = json_files[0]
