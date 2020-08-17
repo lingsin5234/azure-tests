@@ -27,21 +27,18 @@ def azureCompute(request):
     print('Sample start: {}'.format(start_time))
     print()
 
-    # Create the blob client, for use in obtaining references to
-    # blob storage containers and uploading files to containers.
+    # Create the Blob Service Client
     blob_name = 'python-test' + str(uuid.uuid4())
-    # input_container_name = 'compute-test' + str(uuid.uuid4())
     input_container_name = 'compute-testcfc006ac-a052-4cba-a57e-25bbb8d7a4ab'
     blob_service_client = abf.createBlobServiceClient()
 
-    # Use Blob Service Client to get the Container and the Blob Client
+    # Use Blob Service Client to get the Container
     # container = abf.createContainerClient(blob_service_client, input_container_name)
+    # get Container Client if already created.
     container = abf.getContainerClient(input_container_name)
     print("Container Retrieved.")
-    # blob_client = blob_service_client.get_blob_client(container=input_container_name, blob=blob_name)
 
     # Upload Input Files
-    # filenames = ['Test0.txt', 'Test1.txt', 'Test2.txt']
     filenames = ['requirements.txt',
                  'hexgrid_constructor.py',
                  'calculate_hexgrid_standalone.py',
@@ -54,11 +51,10 @@ def azureCompute(request):
     batch_client = abf.createBatchClient()
 
     try:
-        # Create the pool that will contain the compute nodes that will execute the
-        # tasks.
+        # Create Batch Pool that will contain the compute nodes to execute tasks
         # abf.createBatchPool(batch_client, os.environ.get('POOL_ID'))
 
-        # Create the job that will run the tasks.
+        # Create Batch Job to run tasks
         # abf.createBatchJob(batch_client, os.environ.get('JOB_ID'), os.environ.get('POOL_ID'))
 
         # Add the tasks to the job.
@@ -77,7 +73,7 @@ def azureCompute(request):
         abf.printBatchException(err)
         # raise -- continue and delete container + job + pool
 
-    # Clean up storage resources -- DO NOT DELETE THE CONTAINER
+    # Clean up storage resources -- DO NOT DELETE THE CONTAINER FOR NOW
     # print('Deleting container [{}]...'.format(input_container_name))
     # blob_service_client.delete_container(input_container_name)
 
