@@ -119,6 +119,9 @@ def createBatchClient():
 
 def createBatchPool(batch_client, pool_id):
 
+    start_cmd = "/bin/bash -c \"apt-get install -y python3-pip python3-venv\""
+    admin = batchmodels.UserIdentity(auto_user=batchmodels.AutoUserSpecification(elevation_level='admin'))
+
     new_pool = batch.models.PoolAddParameter(
         id=pool_id,
         virtual_machine_configuration=batchmodels.VirtualMachineConfiguration(
@@ -129,8 +132,9 @@ def createBatchPool(batch_client, pool_id):
                 version="latest"
             ),
             node_agent_sku_id="batch.node.ubuntu 18.04"),
-        vm_size='STANDARD_A2_v2',   # VM Type/Size
-        target_dedicated_nodes=1    # pool node count
+        vm_size='STANDARD_A2m_v2',   # VM Type/Size  # STANDARD_A2m_v2 16 GB # Standard_E4_v3 32 GB
+        target_dedicated_nodes=1,    # pool node count
+        start_task=batchmodels.StartTask(command_line=start_cmd, user_identity=admin)
     )
     batch_client.pool.add(new_pool)
 
@@ -155,16 +159,12 @@ def createTasks(batch_client, job_id, input_files, filenames):
                                              value=os.environ.get('AZURE_BLOB_ACCOUNT_KEY'))
 
     # input_file = input_files[0]
-    first_file = filenames[0]
+    req_file = filenames[0]
     # for idx, input_file in enumerate(input_files):
     task_commands = [
         # install latest requirements
         "/bin/bash -c \"python3 -m venv env && source env/bin/activate && " +
-        "python3 -m pip install -r {} && ".format(first_file) +
-
-        # print pip list
-        "python3 -m pip list && " +
-
+        "python3 -m pip install -r {} && ".format(req_file) +
         # run the python script
         "python3 -m calculate_hexgrid_standalone && deactivate\""
     ]
@@ -199,11 +199,9 @@ def waitTaskCompletion(batch_client, job_id, timeout):
             print()
             return True
         else:
-            time.sleep(1)
+            time.sleep(10)
 
-    print()
-    raise RuntimeError("ERROR: Tasks did not reach 'Completed' state within "
-                       "timeout period of " + str(timeout))
+    print("ERROR: Tasks did not reach 'Completed' state within timeout period of " + str(timeout))
 
 
 def printTaskOutput(batch_client, job_id, encoding=None):

@@ -17,8 +17,9 @@ import json, math
 # get default hexgrid
 def get_hexgrid(filename):
 
-    filepath = 'gsod/posts/blanks/' + filename
-    with open(filepath, 'r') as readfile:
+    # filepath = 'gsod/posts/blanks/' + filename
+    # filepath = 'BatchCompute/data' + filename
+    with open(filename, 'r') as readfile:
         hexgrid = json.load(readfile)
 
     return hexgrid
@@ -54,21 +55,17 @@ def hexgrid_constructor(bbox, cellSide, stations, levels, mid_lat):
     station_centroids = []
     print("Set Hexagon Tiles:", str((e1 - s1).total_seconds()), "seconds")
     s2 = dte.datetime.now()
+    print("Number of Stations:", len(stations))
     for idx, station in enumerate(stations):
-        station_coord = Feature(geometry=Point(station['geometry']['coordinates']))
-        # print(station_coord)
+        station_coord = Feature(geometry=Point(stations[idx]['geometry']['coordinates']))
 
-        lat = station['geometry']['coordinates'][1]
+        # print something every 100 to show it is still running
+        if idx % 100 == 0:
+            print("Centroids: ", len(station_centroids), ", idx: ", idx)
+
+        lat = stations[idx]['geometry']['coordinates'][1]
         cellSide_convert = convert_distance(cellSide, lat, mid_lat) * 1.05  # 5% error
         closest_hex = find_closest_polygon(station_coord, centroid_set, cellSide_convert)
-
-        '''
-        # DEBUG:
-        debug_coord = station['geometry']['coordinates']
-        if (debug_coord[0] == -97.5122) and (debug_coord[1] == 27.7742):
-            print(debug_coord, closest_hex)
-        '''
-        # issue if closest hex is just wrong
         if closest_hex['properties']['distanceToPoint'] > (cellSide * 2):
             pass
         else:
@@ -77,27 +74,23 @@ def hexgrid_constructor(bbox, cellSide, stations, levels, mid_lat):
             coord = coord.replace('P-', 'N').replace(',', '_').replace('-', 'n')
             # print(hexGridDict[coord])
             hexGridDict[coord]['station'] = station
-            tempDict[coord]['temperature'] = station['properties']['TMAX']  # TMAX USED HERE #############!!!!!!
+            tempDict[coord]['temperature'] = stations[idx]['properties']['TMAX']  # TMAX USED HERE #############!!!!!!
             station_centroids.append(Feature(geometry=Point(closest_hex['geometry']['coordinates'])))
-    # print(hexGridDict)
-    # stations_set = FeatureCollection(station_centroids)
-    # print(stations_set)
-    # print(len(stations_set['features']))
-    # print(station_centroids)
-    # print(hexGridDict['N125.773062_24.149234'])
-    # print(str(hexGridDict)[:100])
 
     e2 = dte.datetime.now()
     print("Assign Stations:", str((e2 - s2).total_seconds()), "seconds")
 
     # add rings
     s1 = dte.datetime.now()
-    dist = math.sqrt(3) * cellSide
     for idx, hex in enumerate(hexGridDict):
         stations_set = FeatureCollection(station_centroids.copy())
 
         centroid_coord = hex.replace('N', '-').replace('P', '').replace('_', ',').replace('n', '-')
         centroid_coord = [float(c) for c in centroid_coord.split(',')]
+
+        # print something every 1000 to show it is still running
+        if idx % 1000 == 0:
+            print("Ring Searching: ", idx)
 
         # get all the '0's and ignore the stations
         if '0' in hexGridDict[hex]['station']:
